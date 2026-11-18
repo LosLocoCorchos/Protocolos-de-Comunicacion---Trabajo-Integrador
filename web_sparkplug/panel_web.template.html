@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel Sparkplug B · Host Application</title>
+<style>
+  :root {
+    --bg: #f4f6f8; --panel: #ffffff; --texto: #1c2733; --suave: #5b6b7b; --borde: #d9e0e7;
+    --ok: #17803d; --ok-bg: #e3f5e9; --warn: #9a6200; --warn-bg: #fff2d6; --err: #c0262d; --err-bg: #fde6e7;
+    --nd: #66707a; --nd-bg: #eceff2; --acento: #1565c0; --acento-bg: #e4effb; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-tema="claro"]) {
+      --bg: #12171d; --panel: #1b222a; --texto: #e6ebf0; --suave: #9aa8b6; --borde: #2f3a45;
+      --ok: #55d17d; --ok-bg: #12301d; --warn: #f0b84a; --warn-bg: #36290b; --err: #ff6b72; --err-bg: #3a1618;
+      --nd: #a3afbb; --nd-bg: #262e37; --acento: #6aaef5; --acento-bg: #172a40;
+    }
+  }
+  :root[data-tema="oscuro"] {
+    --bg: #12171d; --panel: #1b222a; --texto: #e6ebf0; --suave: #9aa8b6; --borde: #2f3a45;
+    --ok: #55d17d; --ok-bg: #12301d; --warn: #f0b84a; --warn-bg: #36290b; --err: #ff6b72; --err-bg: #3a1618;
+    --nd: #a3afbb; --nd-bg: #262e37; --acento: #6aaef5; --acento-bg: #172a40;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--texto); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  code, .mono { font-family: var(--mono); font-size: .9em; }
+  .contenedor { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  header.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  h1 { font-size: 1.35rem; margin: 0; }
+  h2 { font-size: 1rem; margin: 0 0 10px; }
+  .sub { margin: 2px 0 0; color: var(--suave); font-size: .85rem; }
+  .card { background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 14px 16px; }
+  .pill { padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: .85rem; border: 1px solid var(--borde); }
+  .est-ok { color: var(--ok); background: var(--ok-bg); border-color: transparent; }
+  .est-warn { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
+  .est-error { color: var(--err); background: var(--err-bg); border-color: transparent; }
+  .est-desconocido { color: var(--nd); background: var(--nd-bg); border-color: transparent; }
+
+  details.card > summary { cursor: pointer; font-weight: 600; }
+  form.conexion { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 14px; margin-top: 12px; }
+  label { display: grid; gap: 3px; font-size: .8rem; color: var(--suave); }
+  input[type=text], input[type=password], input[type=url] { padding: 8px 10px; border: 1px solid var(--borde); border-radius: 8px; background: var(--bg); color: var(--texto); font: inherit; min-width: 0; }
+  button { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--acento); background: var(--acento); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button.sec { background: transparent; color: var(--acento); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .acciones { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+  .nota { color: var(--suave); font-size: .8rem; margin: 8px 0 0; }
+
+  .banner { border-radius: 12px; padding: 12px 16px; font-weight: 600; border: 1px solid transparent; }
+  .banner small { display: block; font-weight: 400; margin-top: 2px; }
+
+  .cadena { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .capa { border-radius: 12px; padding: 12px 14px; border: 1px solid var(--borde); background: var(--panel); border-top-width: 5px; }
+  .capa.ok { border-top-color: var(--ok); } .capa.warn { border-top-color: var(--warn); }
+  .capa.error { border-top-color: var(--err); } .capa.desconocido { border-top-color: var(--nd); }
+  .capa .tit { font-weight: 600; font-size: .9rem; }
+  .capa .et { display: inline-block; margin: 6px 0 4px; padding: 1px 9px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+  .capa .txt { font-size: .82rem; color: var(--suave); }
+
+  .disp-cab { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .tile { border: 1px solid var(--borde); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; align-content: start; }
+  .tile .nombre { font-weight: 600; } .tile .meta { color: var(--suave); font-size: .78rem; }
+  .tile.obsoleto .valor, .tile.obsoleto .led, .tile.obsoleto .medidor { opacity: .35; }
+  .valor { font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .led { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--borde); background: var(--nd-bg); }
+  .led.on { background: #22c55e; border-color: #15803d; box-shadow: 0 0 12px #22c55e99; }
+  .fila { display: flex; align-items: center; gap: 12px; }
+  .medidor { height: 12px; background: var(--nd-bg); border-radius: 6px; overflow: hidden; }
+  .medidor > div { height: 100%; background: var(--acento); transition: width .2s; }
+  input[type=range] { width: 100%; }
+  .interruptor { position: relative; width: 56px; height: 30px; flex: none; }
+  .interruptor input { opacity: 0; width: 100%; height: 100%; margin: 0; position: absolute; cursor: pointer; z-index: 1; }
+  .interruptor span { position: absolute; inset: 0; background: var(--nd-bg); border: 1px solid var(--borde); border-radius: 999px; transition: .15s; }
+  .interruptor span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--nd); transition: .15s; }
+  .interruptor input:checked + span { background: var(--acento); border-color: var(--acento); }
+  .interruptor input:checked + span::after { transform: translateX(26px); background: #fff; }
+  .interruptor input:disabled { cursor: not-allowed; }
+  .pendiente { color: var(--warn); font-size: .8rem; font-weight: 600; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+  dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; font-size: .88rem; }
+  dt { color: var(--suave); } dd { margin: 0; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+
+  ul.eventos { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow: auto; font-size: .85rem; }
+  ul.eventos li { padding: 4px 0; border-bottom: 1px solid var(--borde); display: flex; gap: 8px; }
+  ul.eventos .h { color: var(--suave); font-family: var(--mono); flex: none; }
+  .lv-ok { color: var(--ok); } .lv-warn { color: var(--warn); } .lv-error { color: var(--err); } .lv-info { color: var(--acento); }
+  .dos-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+
+  .tabla-wrap { overflow: auto; max-height: 360px; }
+  table { border-collapse: collapse; width: 100%; font-size: .8rem; }
+  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--borde); vertical-align: top; white-space: nowrap; }
+  td.largo { white-space: normal; word-break: break-all; }
+  th { position: sticky; top: 0; background: var(--panel); }
+  tr.msg { cursor: pointer; } tr.msg:hover { background: var(--acento-bg); }
+  .tag { padding: 0 6px; border-radius: 4px; font-weight: 700; font-size: .72rem; }
+  .tx { background: var(--acento-bg); color: var(--acento); } .rx { background: var(--nd-bg); color: var(--nd); }
+  pre.detalle { margin: 4px 0; padding: 8px; background: var(--bg); border-radius: 8px; font-family: var(--mono); font-size: .75rem; overflow: auto; white-space: pre; }
+  footer { color: var(--suave); font-size: .78rem; text-align: center; padding-bottom: 20px; }
+</style>
+</head>
+<body>
+<div class="contenedor">
+  <header class="top">
+    <div>
+      <h1>Panel Sparkplug B</h1>
+      <p class="sub">Host Application <code id="lblHost">Panel_Web</code> · TP3 Integradora · Protocolos de Comunicaciones Industriales · UNRaf</p>
+    </div>
+    <div class="pill est-desconocido" id="pillBroker">Desconectado</div>
+  </header>
+
+  <details class="card" id="conexion" open>
+    <summary>Conexión al broker MQTT (WebSocket seguro)</summary>
+    <form class="conexion" id="formConexion" autocomplete="off">
+      <label>URL del broker (WSS)<input type="url" id="cUrl" required></label>
+      <label>Usuario<input type="text" id="cUsuario" required></label>
+      <label>Contraseña<input type="password" id="cClave" autocomplete="new-password"></label>
+      <label>Grupo (group_id)<input type="text" id="cGrupo" required></label>
+      <label>Edge Node (edge_node_id)<input type="text" id="cNodo" required></label>
+      <label>Dispositivo (device_id)<input type="text" id="cDispositivo" required></label>
+      <label>Host Application (host_id)<input type="text" id="cHost" required></label>
+      <div class="acciones">
+        <button type="submit" id="btnConectar">Conectar</button>
+        <button type="button" class="sec" id="btnRebirth" disabled>Solicitar Rebirth</button>
+        <button type="button" class="sec" id="btnTema">Tema</button>
+      </div>
+    </form>
+    <p class="nota">La contraseña no se guarda. Esta página solo puede suscribirse al grupo y publicar NCMD, DCMD y su propio STATE (permisos del usuario en el broker).</p>
+  </details>
+
+  <div class="banner est-desconocido" id="banner">Sin conexión: completá los datos y presioná Conectar.</div>
+
+  <section>
+    <h2>Estado de la comunicación, capa por capa</h2>
+    <div class="cadena" id="cadena"></div>
+  </section>
+
+  <section class="card">
+    <div class="disp-cab">
+      <h2 style="margin:0">Dispositivo 1 · <span class="mono" id="lblDispositivo">Esclavo_Modbus_ID1</span></h2>
+      <div><span class="pill est-desconocido" id="pillDisp">Sin datos</span> <span class="sub" id="lblEdad"></span></div>
+    </div>
+    <div class="tiles" id="tiles">
+      <div class="tile" id="tPulsador"><div class="nombre">Pulsador <span class="meta">Inputs/Pulsador · Boolean · solo lectura</span></div>
+        <div class="fila"><div class="led" id="ledPulsador"></div><div class="valor" id="vPulsador">—</div></div></div>
+      <div class="tile" id="tPot"><div class="nombre">Potenciómetro <span class="meta">Inputs/Potenciometro · UInt16 · solo lectura</span></div>
+        <div class="valor" id="vPot">—</div><div class="medidor"><div id="mPot" style="width:0"></div></div><div class="meta" id="pPot"></div></div>
+      <div class="tile" id="tLedD"><div class="nombre">LED digital <span class="meta">Outputs/LED_Digital · Boolean · comando</span></div>
+        <div class="fila"><label class="interruptor"><input type="checkbox" id="swLed" disabled><span></span></label><div class="valor" id="vLedD">—</div></div>
+        <div class="pendiente" id="pendLedD"></div></div>
+      <div class="tile" id="tPwm"><div class="nombre">LED PWM <span class="meta">Outputs/LED_PWM · UInt16 (0–255) · comando</span></div>
+        <div class="valor" id="vPwm">—</div><input type="range" id="slPwm" min="0" max="255" step="1" value="0" disabled>
+        <div class="meta" id="pPwm"></div><div class="pendiente" id="pendPwm"></div></div>
+    </div>
+    <p class="nota" id="notaControles"></p>
+  </section>
+
+  <section>
+    <h2>Estadísticas de todas las capas</h2>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <div class="dos-col">
+    <section class="card"><h2>Eventos y fallas</h2><ul class="eventos" id="eventos"></ul></section>
+    <section class="card"><h2>Monitor de mensajes Sparkplug B <span class="sub">(tocá una fila para ver la trama)</span></h2>
+      <div class="tabla-wrap"><table><thead><tr><th>Hora</th><th></th><th>Tipo</th><th>seq</th><th>Métricas</th></tr></thead><tbody id="monitor"></tbody></table></div>
+    </section>
+  </div>
+  <footer>Detección de fallas: NDEATH / Last Will, DDEATH, saltos de <code>seq</code> y métricas de estado de cada capa. Reconexión automática.</footer>
+</div>
+
+<script>
+/*NUCLEO*/
+</script>
+
+<script>
+"use strict";
+/* ============================ Interfaz: DOM + mqtt.js (WebSocket) ============================ */
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+  const hora = (ms) => new Date(ms).toLocaleTimeString("es-AR", {hour12: false});
+  const NIVEL_TXT = {ok: "OK", warn: "ADVERTENCIA", error: "FALLA", desconocido: "SIN DATOS"};
+  const CAMPOS = {cUrl: "url", cUsuario: "usuario", cGrupo: "grupo", cNodo: "nodo", cDispositivo: "dispositivo", cHost: "host"};
+  const PRED = {url: "wss://g6a18d21.ala.us-east-1.emqxsl.com:8084/mqtt", usuario: "panel_web", grupo: "UNRaf_PdCI",
+                nodo: "Gateway_OPCUA", dispositivo: "Esclavo_Modbus_ID1", host: "Panel_Web"};
+
+  let host = null, cliente = null, yaConecto = false, renderPendiente = false;
+  let arrastrando = false, ultimoEnvioPwm = 0, timerPwm = null, abiertas = new Set(), ultimaClaveMonitor = "";
+
+  // ---- preferencias (nunca la contraseña)
+  function guardar(clave, valor) { try { localStorage.setItem("pdci_t3_" + clave, valor); } catch (e) {} }
+  function leer(clave) { try { return localStorage.getItem("pdci_t3_" + clave); } catch (e) { return null; } }
+  for (const [id, k] of Object.entries(CAMPOS)) $(id).value = leer(k) || PRED[k];
+  const tema = leer("tema");
+  if (tema) document.documentElement.dataset.tema = tema;
+  $("btnTema").onclick = () => {
+    const oscuro = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() === "#12171d";
+    const nuevo = oscuro ? "claro" : "oscuro";
+    document.documentElement.dataset.tema = nuevo; guardar("tema", nuevo);
+  };
+
+  // ---- mqtt.js: CDN con alternativas; si no hay red, usar un mqtt.min.js local junto a este archivo
+  const ORIGENES = ["https://unpkg.com/mqtt@5/dist/mqtt.min.js", "https://cdn.jsdelivr.net/npm/mqtt@5/dist/mqtt.min.js", "mqtt.min.js"];
+  function cargarMqtt() {
+    return new Promise((resolver, rechazar) => {
+      if (typeof mqtt !== "undefined") return resolver();
+      let i = 0;
+      const probar = () => {
+        if (i >= ORIGENES.length) return rechazar(new Error("No se pudo cargar mqtt.js (sin acceso a unpkg/jsdelivr). Guardá mqtt.min.js junto a este archivo."));
+        const s = document.createElement("script");
+        s.src = ORIGENES[i++]; s.onload = () => (typeof mqtt !== "undefined" ? resolver() : probar()); s.onerror = probar;
+        document.head.appendChild(s);
+      };
+      probar();
+    });
+  }
+  const aBuffer = (u8) => (typeof Buffer !== "undefined" && Buffer.from ? Buffer.from(u8) : u8);
+
+  // ---- conexión
+  async function conectar(ev) {
+    ev.preventDefault();
+    if (cliente) return desconectar();
+    const c = {}; for (const [id, k] of Object.entries(CAMPOS)) { c[k] = $(id).value.trim(); if (k !== "usuario") guardar(k, c[k]); }
+    guardar("usuario", c.usuario);
+    $("btnConectar").disabled = true;
+    try { await cargarMqtt(); } catch (e) { alert(e.message); $("btnConectar").disabled = false; return; }
+    host = new SPH.Host({grupo: c.grupo, hostId: c.host, nodo: c.nodo, dispositivo: c.dispositivo,
+      onCambio: pedirRender,
+      publicar: (topico, payload, op) => {
+        if (!cliente || !cliente.connected) return;
+        cliente.publish(topico, aBuffer(payload), {qos: op.qos, retain: op.retain},
+          (err) => { if (err) host.evento("error", "No se pudo publicar en " + topico + ": " + err.message); });
+      }});
+    $("lblHost").textContent = c.host; $("lblDispositivo").textContent = c.dispositivo;
+    const w = host.will();
+    cliente = mqtt.connect(c.url, {clientId: c.host + "_" + Math.random().toString(16).slice(2, 10), username: c.usuario,
+      password: $("cClave").value, clean: true, keepalive: 15, reconnectPeriod: 2000, connectTimeout: 8000,
+      will: {topic: w.topic, payload: w.payload, qos: w.qos, retain: w.retain}});
+    yaConecto = false;
+    cliente.on("connect", () => {
+      cliente.subscribe(host.topicoSuscripcion(), {qos: 0}, (err) => {
+        if (err) { host.evento("error", "No se pudo suscribir a " + host.topicoSuscripcion() + ": " + err.message); return; }
+        host.alConectar(yaConecto); yaConecto = true; pedirRender();
+      });
+    });
+    cliente.on("close", () => { host.alDesconectar(); pedirRender(); });
+    cliente.on("reconnect", () => { setPill("Reconectando…", "warn"); });
+    cliente.on("error", (e) => { host.evento("error", "MQTT: " + (e && e.message ? e.message : e)); });
+    cliente.on("message", (t, p) => host.alMensaje(t, new Uint8Array(p)));
+    $("btnConectar").textContent = "Desconectar"; $("btnConectar").disabled = false; $("btnRebirth").disabled = false;
+    $("conexion").open = false; $("cClave").value = "";
+    setPill("Conectando…", "warn");
+  }
+  function desconectar() {
+    const c = cliente; cliente = null;
+    $("btnConectar").textContent = "Conectar"; $("btnRebirth").disabled = true;
+    try {   // cierre ordenado: STATE offline retenido antes del DISCONNECT (el Will solo sale ante cortes)
+      c.publish(host.topicoEstado(), aBuffer(new TextEncoder().encode(host.cargaEstado(false))), {qos: 1, retain: true}, () => c.end(true));
+      setTimeout(() => c.end(true), 1500);
+    } catch (e) { c.end(true); }
+    host.alDesconectar(); pedirRender();
+  }
+  $("formConexion").addEventListener("submit", conectar);
+  $("btnRebirth").onclick = () => host && host.pedirRebirth(host.cfg.nodo, "pedido manual", true);
+  window.addEventListener("beforeunload", () => { try { if (cliente && cliente.connected) cliente.publish(host.topicoEstado(), aBuffer(new TextEncoder().encode(host.cargaEstado(false))), {qos: 0, retain: true}); } catch (e) {} });
+
+  function setPill(txt, nivel) { const p = $("pillBroker"); p.textContent = txt; p.className = "pill est-" + nivel; }
+
+  // ---- controles de las salidas
+  function dispositivoActual() {
+    const n = host && host.nodos.get(host.cfg.nodo);
+    return n && n.dispositivos.get(host.cfg.dispositivo);
+  }
+  function enviar(nombre, valor) {
+    const r = host.enviarComando(nombre, valor);
+    if (!r.ok) host.evento("warn", "Comando no enviado (" + nombre + "): " + r.motivo);
+    pedirRender();
+  }
+  $("swLed").addEventListener("change", (e) => enviar("Outputs/LED_Digital", e.target.checked));
+  const sl = $("slPwm");
+  sl.addEventListener("pointerdown", () => { arrastrando = true; });
+  sl.addEventListener("input", () => {
+    $("vPwm").textContent = sl.value;
+    const ahora = Date.now();
+    if (ahora - ultimoEnvioPwm >= 250) { ultimoEnvioPwm = ahora; enviar("Outputs/LED_PWM", +sl.value); }
+    else { clearTimeout(timerPwm); timerPwm = setTimeout(() => { ultimoEnvioPwm = Date.now(); enviar("Outputs/LED_PWM", +sl.value); }, 250); }
+  });
+  sl.addEventListener("change", () => { clearTimeout(timerPwm); arrastrando = false; ultimoEnvioPwm = Date.now(); enviar("Outputs/LED_PWM", +sl.value); });
+
+  // ---- render
+  function pedirRender() {
+    if (renderPendiente) return;
+    renderPendiente = true;
+    requestAnimationFrame(() => { renderPendiente = false; render(); });
+  }
+  const val = (m) => (m && m.valor != null ? m.valor : null);
+  function render() {
+    if (!host) return;
+    const dg = host.diagnostico();
+    // pill del broker
+    if (host.brokerOnline) setPill("Conectado al broker", "ok");
+    else if (cliente) setPill("Reconectando…", "warn");
+    else setPill("Desconectado", "desconocido");
+    // banner
+    const b = $("banner");
+    if (dg.nivel === "ok") { b.className = "banner est-ok"; b.innerHTML = "Sistema operativo<small>Todas las capas de comunicación responden.</small>"; }
+    else {
+      b.className = "banner est-" + dg.nivel;
+      b.innerHTML = (dg.nivel === "desconocido" ? "Esperando datos" : "Falla detectada") + "<small>" + esc(dg.falla || "") + "</small>";
+    }
+    // capas
+    $("cadena").innerHTML = dg.capas.map((c, i) => '<div class="capa ' + c.estado + '"><div class="tit">' + (i + 1) + " · " + esc(c.titulo) +
+      '</div><span class="et est-' + c.estado + '">' + NIVEL_TXT[c.estado] + '</span><div class="txt">' + esc(c.texto) + "</div></div>").join("");
+    renderDispositivo(dg);
+    renderStats();
+    $("eventos").innerHTML = host.eventos.slice(0, 60).map((e) => '<li><span class="h">' + hora(e.t) + '</span><span class="lv-' + e.nivel + '">' + esc(e.texto) + "</span></li>").join("") ||
+      '<li><span class="h">—</span>Sin eventos todavía</li>';
+    renderMonitor();
+  }
+
+  function renderDispositivo(dg) {
+    const dev = dispositivoActual(), nodo = host.nodos.get(host.cfg.nodo);
+    const enLinea = !!dev && dev.estado === "online";
+    const m = (n) => (dev ? dev.metricas.get(n) : null);
+    const pill = $("pillDisp");
+    pill.textContent = enLinea ? "EN LÍNEA (DBIRTH)" : (dev && dev.estado === "offline" ? "FUERA DE LÍNEA (DDEATH)" : "SIN DATOS");
+    pill.className = "pill est-" + (enLinea ? "ok" : (dev && dev.estado === "offline" ? "error" : "desconocido"));
+    $("lblEdad").textContent = nodo && nodo.ultimoMensaje ? "último mensaje del nodo hace " + Math.max(0, Math.round((Date.now() - nodo.ultimoMensaje) / 1000)) + " s" : "";
+    for (const id of ["tPulsador", "tPot", "tLedD", "tPwm"]) $(id).classList.toggle("obsoleto", !enLinea);
+
+    const pul = val(m("Inputs/Pulsador"));
+    $("ledPulsador").classList.toggle("on", pul === true);
+    $("vPulsador").textContent = pul == null ? "—" : (pul ? "PRESIONADO" : "SUELTO");
+    const pot = val(m("Inputs/Potenciometro"));
+    $("vPot").textContent = pot == null ? "—" : pot;
+    $("mPot").style.width = pot == null ? "0" : Math.min(100, pot / 1023 * 100) + "%";
+    $("pPot").textContent = pot == null ? "" : (pot / 1023 * 100).toFixed(0) + " % del rango (0–1023)";
+
+    const pLed = host.pendientes.get("Outputs/LED_Digital"), pPwm = host.pendientes.get("Outputs/LED_PWM");
+    const led = val(m("Outputs/LED_Digital")), pwm = val(m("Outputs/LED_PWM"));
+    const mostrarLed = pLed ? pLed.valor : led;
+    $("swLed").checked = mostrarLed === true;
+    $("vLedD").textContent = mostrarLed == null ? "—" : (mostrarLed ? "ENCENDIDO" : "APAGADO");
+    $("pendLedD").textContent = pLed ? "enviando comando, esperando confirmación…" : "";
+    if (!arrastrando) {
+      const mostrarPwm = pPwm ? pPwm.valor : pwm;
+      if (mostrarPwm != null) sl.value = mostrarPwm;
+      $("vPwm").textContent = mostrarPwm == null ? "—" : mostrarPwm;
+      $("pPwm").textContent = mostrarPwm == null ? "" : (mostrarPwm / 255 * 100).toFixed(0) + " % de brillo";
+    }
+    $("pendPwm").textContent = pPwm ? "enviando comando, esperando confirmación…" : "";
+    const habilitar = enLinea && host.brokerOnline;
+    $("swLed").disabled = !habilitar; sl.disabled = !habilitar;
+    $("notaControles").textContent = habilitar ? "Los controles envían un DCMD; el valor mostrado es el que confirma el dispositivo (DDATA)."
+      : "Controles deshabilitados: " + (dg.falla ? dg.falla : "esperando el DBIRTH del dispositivo.");
+  }
+
+  function renderStats() {
+    const s = host.estadisticas(), v = (x) => (x == null ? "—" : esc(x));
+    const fila = (k, x) => "<dt>" + k + "</dt><dd>" + v(x) + "</dd>";
+    const tipos = Object.entries(s.sparkplug.mensajes).map(([k, n]) => k + ":" + n).join("  ") || "—";
+    $("stats").innerHTML =
+      '<div class="card"><h2>Modbus RS485 (Disp. 2 ⇄ 1)</h2><dl>' + fila("Estado", s.modbus.estado) + fila("Peticiones OK", s.modbus.ok) +
+        fila("CRC_ERROR", s.modbus.crc) + fila("TIMEOUT", s.modbus.timeout) + "</dl></div>" +
+      '<div class="card"><h2>OPC UA (Disp. 3 ⇄ 2)</h2><dl>' + fila("Estado", s.opcua.estado) + "</dl></div>" +
+      '<div class="card"><h2>MQTT</h2><dl>' + fila("Reconexiones del gateway", s.mqtt.gatewayReconexiones) + fila("Reconexiones de esta página", s.mqtt.webReconexiones) +
+        fila("Bytes recibidos", s.mqtt.bytes) + "</dl></div>" +
+      '<div class="card"><h2>Sparkplug B</h2><dl>' + fila("bdSeq del nodo", s.sparkplug.bdSeq) + fila("Último seq", s.sparkplug.ultimoSeq) +
+        fila("Rebirths atendidos por el nodo", s.sparkplug.rebirthsNodo) + fila("Rebirths pedidos", s.sparkplug.rebirthsPedidos) +
+        fila("Saltos de seq", s.sparkplug.saltosSeq) + fila("Payloads inválidos", s.sparkplug.errores) +
+        fila("Comandos enviados", s.sparkplug.comandos) + fila("Comandos sin confirmar", s.sparkplug.sinConfirmar) +
+        '</dl><p class="nota mono">' + esc(tipos) + "</p></div>";
+  }
+
+  function resumen(metricas) {
+    return metricas.slice(0, 6).map((m) => esc(m.nombre) + "=" + (m.valor == null ? "∅" : esc(m.valor))).join(", ") + (metricas.length > 6 ? " …" : "");
+  }
+  function renderMonitor() {
+    const clave = host.monitor.length + "_" + (host.monitor[0] ? host.monitor[0].id : 0) + "_" + Array.from(abiertas).join(",");
+    if (clave === ultimaClaveMonitor) return;
+    ultimaClaveMonitor = clave;
+    const filas = [];
+    host.monitor.slice(0, 80).forEach((e) => {
+      const id = String(e.id);
+      filas.push('<tr class="msg" data-id="' + id + '"><td>' + hora(e.t) + '</td><td><span class="tag ' + (e.dir === "TX" ? "tx" : "rx") + '">' + e.dir +
+        "</span></td><td>" + esc(e.tipo) + "</td><td>" + (e.seq == null ? "" : e.seq) + '</td><td class="largo">' +
+        (e.error ? '<span class="lv-error">' + esc(e.error) + "</span>" : (e.texto ? esc(e.texto) : resumen(e.metricas))) + "</td></tr>");
+      if (abiertas.has(id)) {
+        const bytes = e.bytes || new Uint8Array(0);
+        let dec = ""; try { dec = JSON.stringify(SPH.decodificar(bytes), null, 1); } catch (x) { dec = e.texto || ""; }
+        filas.push('<tr><td colspan="5"><div class="mono" style="font-size:.75rem">' + esc(e.topico) + " · " + bytes.length + ' bytes</div><pre class="detalle">' +
+          esc(SPH.volcado(bytes)) + '</pre><pre class="detalle">' + esc(dec) + "</pre></td></tr>");
+      }
+    });
+    $("monitor").innerHTML = filas.join("");
+  }
+  $("monitor").addEventListener("click", (ev) => {
+    const tr = ev.target.closest("tr.msg"); if (!tr) return;
+    const id = tr.dataset.id;
+    if (abiertas.has(id)) abiertas.delete(id); else abiertas.add(id);
+    ultimaClaveMonitor = ""; render();
+  });
+
+  setInterval(() => { if (host) { host.tick(); render(); } }, 500);
+  render();
+})();
+</script>
+</body>
+</html>

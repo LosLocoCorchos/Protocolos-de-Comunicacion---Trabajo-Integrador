@@ -1,0 +1,25 @@
+{
+  "opcua": {
+    "url": "opc.tcp://192.168.10.1:4840",
+    "seguridad": "none",
+    "pki": "pki",
+    "usuario": null,
+    "clave": null
+  },
+  "mqtt": {
+    "broker": "g6a18d21.ala.us-east-1.emqxsl.com",
+    "puerto": 8883,
+    "tls": true,
+    "ca_cert": null,
+    "usuario": "gateway_opcua",
+    "clave": "COMPLETAR",
+    "keepalive_s": 15
+  },
+  "sparkplug": {
+    "grupo": "UNRaf_PdCI",
+    "nodo": "Gateway_OPCUA",
+    "periodo_estado_s": 1.0,
+    "limites": {"Outputs/LED_PWM": [0, 255]}
+  },
+  "config_esclavo": "config_esclavo.json"
+}

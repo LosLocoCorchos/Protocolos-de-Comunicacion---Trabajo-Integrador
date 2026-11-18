@@ -1,0 +1,18 @@
+{
+  "serie": {
+    "puerto": "/dev/ttyUSB0",
+    "baudrate": 9600,
+    "paridad": "N",
+    "bits_parada": 1,
+    "timeout_ms": 300
+  },
+  "esclavo_id": 1,
+  "polling_ms": 500,
+  "ciclos_para_perdido": 3,
+  "variables": [
+    {"nombre": "Inputs/Pulsador",      "tipo": "Boolean", "area": "discrete_input",   "direccion": 0},
+    {"nombre": "Inputs/Potenciometro", "tipo": "UInt16",  "area": "input_register",   "direccion": 0},
+    {"nombre": "Outputs/LED_Digital",  "tipo": "Boolean", "area": "coil",             "direccion": 0},
+    {"nombre": "Outputs/LED_PWM",      "tipo": "UInt16",  "area": "holding_register", "direccion": 0}
+  ]
+}

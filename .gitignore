@@ -1,0 +1,10 @@
+# Claves privadas y certificados
+*.pem
+*.key
+pki/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/

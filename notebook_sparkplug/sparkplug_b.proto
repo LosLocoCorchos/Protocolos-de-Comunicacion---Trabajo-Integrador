@@ -1,0 +1,40 @@
+// Subconjunto de sparkplug_b.proto (Eclipse Tahu, Sparkplug B).
+// Mantiene los NUMEROS DE CAMPO y los tipos del archivo oficial para los mensajes que usa este TP:
+// Payload y Metric. Se omiten Template, DataSet, PropertySet y MetaData (no se usan), de modo que
+// el formato en el cable es el mismo y cualquier decodificador Sparkplug B (MQTT Explorer, Tahu,
+// protobufjs en la pagina web) lo interpreta igual. Si la catedra exige el archivo completo,
+// se puede reemplazar por el oficial sin cambiar nada del resto.
+syntax = "proto2";
+
+package org.eclipse.tahu.protobuf;
+
+message Payload {
+  message Metric {
+    optional string   name         = 1;   // nombre de la metrica, ej. "Inputs/Pulsador"
+    optional uint64   alias        = 2;   // (no usado: se publican siempre los nombres)
+    optional uint64   timestamp    = 3;   // ms desde 1970-01-01 UTC
+    optional uint32   datatype     = 4;   // ver tabla DataType
+    optional bool     is_historical = 5;
+    optional bool     is_transient  = 6;
+    optional bool     is_null       = 7;  // valor desconocido
+    oneof value {
+      uint32  int_value     = 10;         // Int8/16/32, UInt8/16/32
+      uint64  long_value    = 11;         // Int64, UInt64, DateTime
+      float   float_value   = 12;
+      double  double_value  = 13;
+      bool    boolean_value = 14;
+      string  string_value  = 15;
+      bytes   bytes_value   = 16;
+    }
+  }
+
+  optional uint64 timestamp = 1;          // ms desde 1970-01-01 UTC
+  repeated Metric metrics   = 2;
+  optional uint64 seq       = 3;          // 0..255
+  optional string uuid      = 4;
+  optional bytes  body      = 5;
+}
+
+// Tabla DataType (valores del campo Metric.datatype):
+// Int8=1 Int16=2 Int32=3 Int64=4 UInt8=5 UInt16=6 UInt32=7 UInt64=8 Float=9 Double=10
+// Boolean=11 String=12 DateTime=13 Text=14
